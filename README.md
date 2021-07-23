@@ -5,6 +5,46 @@ If you need to inspect TLS protected communication of a black-box golang binary 
 then you can use this tool to patch the executable to act like `InsecureSkipVerify` was turned on. (You still have some additional work,
 configuring a transparent proxy and setting up mitmproxy or alike)
 
+## Payloads
+
+We are replacing a conditional jump to a JMP+NOP in crypto/tls.(*Conn).verifyServerCertificate:
+
+ 0x5a4bc5 <crypto/tls.(*Conn).verifyServerCertificate+133>       jne    0x5a5225 <crypto/tls.(*Conn).verifyServerCertificate+1765>   
+
+This line is effectively the same as:
+
+```
+if !c.config.InsecureSkipVerify {
+```
+
+if InsecureSkipVerify is false, it does not jump. We shall jump always. This is:
+
+```
+  5a4ba1:       48 8b 8c 24 88 02 00    mov    0x288(%rsp),%rcx
+  5a4ba8:       00
+  5a4ba9:       48 85 c9                test   %rcx,%rcx
+  5a4bac:       0f 8f 7e 06 00 00       jg     5a5230 <crypto/tls.(*Conn).verifyServerCertificate+0x6f0>
+  5a4bb2:       48 8b 9c 24 78 02 00    mov    0x278(%rsp),%rbx
+  5a4bb9:       00
+  5a4bba:       48 8b 73 48             mov    0x48(%rbx),%rsi
+  5a4bbe:       80 be a0 00 00 00 00    cmpb   $0x0,0xa0(%rsi)
+  5a4bc5:       0f 85 5a 06 00 00       jne    5a5225 <crypto/tls.(*Conn).verifyServerCertificate+0x6e5>  <- this is to be patched
+  5a4bcb:       48 8b 76 10             mov    0x10(%rsi),%rsi
+  5a4bcf:       48 85 f6                test   %rsi,%rsi
+  5a4bd2:       0f 84 41 06 00 00       je     5a5219 <crypto/tls.(*Conn).verifyServerCertificate+0x6d9>
+  5a4bd8:       48 8b 06                mov    (%rsi),%rax
+  5a4bdb:       48 89 f2                mov    %rsi,%rdx
+  5a4bde:       66 90                   xchg   %ax,%ax
+  5a4be0:       ff d0                   callq  *%rax
+  5a4be2:       48 8b 04 24             mov    (%rsp),%rax
+```
+
+The pre-calculated payloads you can use (before after pairs):
+
+go116-amd64: 0f855a060000 e95b06000090
+go113-amd64: 0f8532050000 e93305000090
+
+
 ## Examples
 
 You may use the example go app included in this repo. Normally, it's output looks like this:
@@ -18,7 +58,7 @@ Error while fetching https://untrusted-root.badssl.com/: Get https://untrusted-r
 Patching it:
 
 ```
-root@f4297f8cd9e5:/data/2/go-insecuretls-patch/example-goapp# ../golang-insecureskipverify-patcher.pl gohttp go113-amd64
+root@f4297f8cd9e5:/data/2/go-insecuretls-patch/example-goapp# ../filepatcher/filepatcher.pl gohttp 0f8532050000 e93305000090
 Looking for: 0f8532050000
 1 match!
 Replacing to: e93305000090

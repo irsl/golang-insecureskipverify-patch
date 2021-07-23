@@ -4,19 +4,14 @@ use strict;
 use warnings;
 use Fcntl qw(SEEK_SET SEEK_CUR SEEK_END); # better than using 0, 1, 2
 
-my %patches = (
-   "go116-amd64" => { "before" => "0f855a060000", "after" => "e95b06000090" },
-   "go113-amd64" => { "before" => "0f8532050000", "after" => "e93305000090" },
-);
-
 my $in = shift @ARGV;
-my $mode = shift @ARGV;
-my $modestr = join(" ", keys %patches);
-die "Usage: $0 path-to-go-binary-to-patch mode
-Where mode is one of: $modestr
-" if ((!$in)||(!$mode)||(!$patches{$mode}));
+my $patch_from = shift @ARGV;
+my $patch_to = shift @ARGV;
 
-my $patch = $patches{$mode};
+die "Usage: $0 path-to-go-binary-to-patch patch-from patch-to
+" if ((!$in)||(!$patch_to));
+
+my $patch = {"before"=>$patch_from, "after"=>$patch_to};
 
 open(my $fh, "+<", $in) or die "cannot open $in: $!";
 binmode $fh;
