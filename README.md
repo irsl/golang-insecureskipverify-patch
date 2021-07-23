@@ -42,6 +42,7 @@ if InsecureSkipVerify is false, it does not jump. We shall jump always. This is:
 The pre-calculated payloads you can use (before after pairs):
 
 go116-amd64: 0f855a060000 e95b06000090
+
 go113-amd64: 0f8532050000 e93305000090
 
 
