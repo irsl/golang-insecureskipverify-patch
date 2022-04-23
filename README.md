@@ -39,6 +39,9 @@ if InsecureSkipVerify is false, it does not jump. We shall jump always. This is:
   5a4be2:       48 8b 04 24             mov    (%rsp),%rax
 ```
 
+Note wrt offset calculation: 5a5225-5a4bc5 - 6 = 0x65a  (6 is the instruction length of jne), hence 5a06 in the from value.
+The unconditional jump is one byte shorter, so its offset is 0x65a+1 = 0x65b, hence the value 5b06 in the to value.
+
 The pre-calculated payloads you can use (before after pairs):
 
 go116-amd64: 0f855a060000 e95b06000090
